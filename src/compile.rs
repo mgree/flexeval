@@ -126,7 +126,7 @@ impl BinOp {
 }
 
 impl VarOp {
-    pub fn compile(&self, exprs: &[Expr]) -> Prog {
+    pub fn compile(&self, _exprs: &[Expr]) -> Prog {
         match self {
             VarOp::And => todo!(),
             VarOp::Or => todo!(),

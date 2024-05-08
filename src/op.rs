@@ -1,5 +1,3 @@
-use core::num;
-
 use crate::ast::Type;
 use crate::eval::{Env, EvalError, Record, Value};
 
@@ -26,7 +24,7 @@ impl Prim {
         numstack: &mut Vec<i64>,
         boolstack: &mut Vec<bool>,
         recordstack: &mut Vec<Record>,
-    ) {
+    ) -> Result<(), EvalError> {
         match self {
             Prim::Not => {
                 let b = boolstack.pop().unwrap();
@@ -54,7 +52,9 @@ impl Prim {
             Prim::Div => {
                 let lhs = numstack.pop().unwrap();
                 let rhs = numstack.pop().unwrap();
-                // TODO how do prims signal errors?
+                if rhs == 0 {
+                    return Err(EvalError::DivideByZero);
+                }
                 numstack.push(lhs / rhs);
             }
             Prim::NumEq => {
@@ -75,8 +75,15 @@ impl Prim {
             Prim::RecordGet => {
                 let r = recordstack.pop().unwrap();
                 let f = numstack.pop().unwrap();
-                // TODO how do prims signal errors?
-                vstack.push(r.get(&f).unwrap().clone()) // TODO sucks to clone!
+
+                if let Some(v) = r.get(&f) {
+                    vstack.push(v.clone()); // TODO sucks to clone!
+                } else {
+                    return Err(EvalError::NoSuchField {
+                        record: r,
+                        field: f,
+                    });
+                }
             }
             Prim::RecordExtend => {
                 let mut lhs = recordstack.pop().unwrap();
@@ -90,6 +97,8 @@ impl Prim {
                 boolstack.push(crate::eval::record_contains_record(&lhs, &rhs))
             }
         }
+
+        Ok(())
     }
 }
 
@@ -205,7 +214,7 @@ impl Prog {
                     recordstack.pop().ok_or_else(|| EvalError::StackUnderflow)?,
                 )),
                 Instruction::CallPrim(prim) => {
-                    prim.run(&mut vstack, &mut numstack, &mut boolstack, &mut recordstack)
+                    prim.run(&mut vstack, &mut numstack, &mut boolstack, &mut recordstack)?
                 }
                 Instruction::Jump(tgt) => {
                     pc = tgt;
