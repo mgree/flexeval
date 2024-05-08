@@ -1,3 +1,5 @@
+use core::num;
+
 use crate::ast::Type;
 use crate::eval::{Env, EvalError, Record, Value};
 
@@ -241,6 +243,10 @@ impl Prog {
             pc += 1;
         }
 
+        assert_eq!(vstack.len(), 1);
+        assert!(numstack.is_empty());
+        assert!(boolstack.is_empty());
+        assert!(recordstack.is_empty());
         vstack.pop().ok_or_else(|| EvalError::StackUnderflow)
     }
 }
