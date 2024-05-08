@@ -68,7 +68,7 @@ impl Expr {
         match self {
             Expr::Var(v) => env
                 .get(*v)
-                .ok_or_else(|| EvalError::UnboundVariable(*v))
+                .ok_or(EvalError::UnboundVariable(*v))
                 .cloned(),
             Expr::Const(c) => Ok(Value::from(c)),
             Expr::UnOp(op, arg) => op.eval(arg.eval(env)?),
@@ -189,7 +189,7 @@ impl VarOp {
                     }
                 }
 
-                return Ok(Value::Bool(true));
+                Ok(Value::Bool(true))
             }
             VarOp::Or => {
                 for expr in args {
@@ -200,7 +200,7 @@ impl VarOp {
                     }
                 }
 
-                return Ok(Value::Bool(false));
+                Ok(Value::Bool(false))
             }
             VarOp::Coalesce(ty) => {
                 for expr in args {
@@ -210,7 +210,7 @@ impl VarOp {
                     }
                 }
 
-                return Ok(Value::Null(*ty));
+                Ok(Value::Null(*ty))
             }
         }
     }

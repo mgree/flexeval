@@ -157,11 +157,21 @@ pub struct Prog {
     instructions: Vec<Instruction>,
 }
 
+impl Default for Prog {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Prog {
     pub fn new() -> Self {
         Prog {
             instructions: Vec::with_capacity(1024),
         }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.instructions.is_empty()
     }
 
     pub fn len(&self) -> usize {
@@ -198,20 +208,20 @@ impl Prog {
             match self.instructions[pc] {
                 Instruction::Pop(n) => vstack.truncate(vstack.len() - n),
                 Instruction::Load(v) => {
-                    let value = env.get(v).ok_or_else(|| EvalError::UnboundVariable(v))?;
+                    let value = env.get(v).ok_or(EvalError::UnboundVariable(v))?;
                     vstack.push(value.clone()); // sucks to clone!
                 }
                 Instruction::ConstNum(n) => numstack.push(n),
                 Instruction::ConstBool(b) => boolstack.push(b),
                 Instruction::ConstNull(ty) => vstack.push(Value::Null(ty)),
                 Instruction::TagNum => vstack.push(Value::Number(
-                    numstack.pop().ok_or_else(|| EvalError::StackUnderflow)?,
+                    numstack.pop().ok_or(EvalError::StackUnderflow)?,
                 )),
                 Instruction::TagBool => vstack.push(Value::Bool(
-                    boolstack.pop().ok_or_else(|| EvalError::StackUnderflow)?,
+                    boolstack.pop().ok_or(EvalError::StackUnderflow)?,
                 )),
                 Instruction::TagRecord => vstack.push(Value::Record(
-                    recordstack.pop().ok_or_else(|| EvalError::StackUnderflow)?,
+                    recordstack.pop().ok_or(EvalError::StackUnderflow)?,
                 )),
                 Instruction::CallPrim(prim) => {
                     prim.run(&mut vstack, &mut numstack, &mut boolstack, &mut recordstack)?
@@ -221,13 +231,13 @@ impl Prog {
                     continue;
                 }
                 Instruction::Branch(tgt) => {
-                    if boolstack.pop().ok_or_else(|| EvalError::StackUnderflow)? {
+                    if boolstack.pop().ok_or(EvalError::StackUnderflow)? {
                         pc = tgt;
                         continue;
                     }
                 }
                 Instruction::CheckNum(tgt) => {
-                    let v = vstack.pop().ok_or_else(|| EvalError::StackUnderflow)?;
+                    let v = vstack.pop().ok_or(EvalError::StackUnderflow)?;
                     match v {
                         Value::Number(n) => numstack.push(n),
                         _ => {
@@ -238,7 +248,7 @@ impl Prog {
                     }
                 }
                 Instruction::CheckBool(tgt) => {
-                    let v = vstack.pop().ok_or_else(|| EvalError::StackUnderflow)?;
+                    let v = vstack.pop().ok_or(EvalError::StackUnderflow)?;
                     match v {
                         Value::Bool(b) => boolstack.push(b),
                         _ => {
@@ -249,7 +259,7 @@ impl Prog {
                     }
                 }
                 Instruction::CheckRecord(tgt) => {
-                    let v = vstack.pop().ok_or_else(|| EvalError::StackUnderflow)?;
+                    let v = vstack.pop().ok_or(EvalError::StackUnderflow)?;
                     match v {
                         Value::Record(r) => recordstack.push(r),
                         _ => {
@@ -260,7 +270,7 @@ impl Prog {
                     }
                 }
                 Instruction::CheckNull(tgt) => {
-                    let v = vstack.last().ok_or_else(|| EvalError::StackUnderflow)?;
+                    let v = vstack.last().ok_or(EvalError::StackUnderflow)?;
                     match v {
                         Value::Null(_ty) => (),
                         _ => {
@@ -270,7 +280,7 @@ impl Prog {
                     }
                 }
                 Instruction::TypeError(expected) => {
-                    let value = vstack.pop().ok_or_else(|| EvalError::StackUnderflow)?;
+                    let value = vstack.pop().ok_or(EvalError::StackUnderflow)?;
                     let got = Type::from(&value);
                     return Err(EvalError::TypeError {
                         value,
@@ -288,7 +298,7 @@ impl Prog {
         assert!(numstack.is_empty());
         assert!(boolstack.is_empty());
         assert!(recordstack.is_empty());
-        vstack.pop().ok_or_else(|| EvalError::StackUnderflow)
+        vstack.pop().ok_or(EvalError::StackUnderflow)
     }
 }
 
