@@ -164,7 +164,7 @@ impl BinOp {
 
 /// Does the `lhs` contain the `rhs`?
 /// Meant to mimic the `@>` jsonb contains operator from PostgreSQL https://www.postgresql.org/docs/current/datatype-json.html#JSON-CONTAINMENT
-fn record_contains_record(lhs: &Value, rhs: &Value) -> bool {
+pub(crate) fn record_contains_record(lhs: &Value, rhs: &Value) -> bool {
     match (lhs, rhs) {
         (Value::Bool(b1), Value::Bool(b2)) => b1 == b2,
         (Value::Number(n1), Value::Number(n2)) => n1 == n2,

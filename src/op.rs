@@ -57,12 +57,38 @@ impl Prim {
                 // TODO how do prims signal errors?
                 numstack.push(lhs / rhs);
             }
-            Prim::NumEq => todo!(),
-            Prim::BoolEq => todo!(),
-            Prim::RecordEq => todo!(),
-            Prim::RecordGet => todo!(),
-            Prim::RecordExtend => todo!(),
-            Prim::RecordContains => todo!(),
+            Prim::NumEq => {
+                let lhs = numstack.pop().unwrap();
+                let rhs = numstack.pop().unwrap();
+                boolstack.push(lhs == rhs);
+            }
+            Prim::BoolEq => {
+                let lhs = boolstack.pop().unwrap();
+                let rhs = boolstack.pop().unwrap();
+                boolstack.push(lhs == rhs);
+            }
+            Prim::RecordEq => {
+                let lhs = recordstack.pop().unwrap();
+                let rhs = recordstack.pop().unwrap();
+                boolstack.push(lhs == rhs);
+            }
+            Prim::RecordGet => {
+                let r = recordstack.pop().unwrap();
+                let f = numstack.pop().unwrap();
+                // TODO how do prims signal errors?
+                vstack.push(r.get(&f).unwrap().clone()) // TODO sucks to clone!
+            }
+            Prim::RecordExtend => {
+                let mut lhs = recordstack.pop().unwrap();
+                let rhs = recordstack.pop().unwrap();
+                lhs.extend(rhs);
+                recordstack.push(lhs);
+            }
+            Prim::RecordContains => {
+                let lhs = vstack.pop().unwrap();
+                let rhs = vstack.pop().unwrap();
+                boolstack.push(crate::eval::record_contains_record(&lhs, &rhs))
+            }
         }
     }
 }
@@ -86,6 +112,7 @@ pub enum Instruction {
     /// Move a value from the record stack to the value stack
     TagRecord,
     /// Call a primitive
+    // TODO this could be specialized to call prims with different conventions
     CallPrim(Prim),
     /// Unconditional jump,
     Jump(usize),
@@ -137,6 +164,11 @@ impl Prog {
         self.instructions.push(insn);
     }
 
+    // TODO this is kind of a weak-sauce way of handling jumps
+    // it would be nicer to:
+    //   - use labels and then fill things in
+    //   - use an explicit CFG builder (saves us the trouble of reconstructing it)
+    //   - use a builder pattern on `Prog` (basically, a mix of the prior two)
     pub fn extend(&mut self, other: Prog) {
         let delta = self.instructions.len();
         self.instructions
