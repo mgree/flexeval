@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::ast::{BinOp, Const, Expr, Type, UnOp, VarOp};
 
-type Record = HashMap<i64, Value>;
+pub type Record = HashMap<i64, Value>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Value {
@@ -47,6 +47,7 @@ pub enum EvalError {
         record: Record,
         field: i64,
     },
+    StackUnderflow,
 }
 
 impl EvalError {
